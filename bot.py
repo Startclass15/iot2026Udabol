@@ -1,8 +1,10 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder,ContextTypes,CommandHandler
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-
-token=""
+token=os.getenv("tokenTelegram")
 
 async def comandoAlerta(update:Update,context:ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Activando Alarma...")
