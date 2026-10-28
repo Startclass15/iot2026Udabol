@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Monitoreo IoT</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 25px 15px;
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #64748b;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit, minmax(150px, 1fr)
+            );
+            gap: 12px;
+        }
+
+        .sensor-item {
+            padding: 20px 10px;
+            text-align: center;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .sensor-label {
+            display: block;
+            color: #64748b;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .sensor-value {
+            display: block;
+            margin-top: 10px;
+            font-size: 24px;
+            color: #2563eb;
+        }
+
+        .report-box {
+            padding: 15px;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            line-height: 1.6;
+        }
+
+        .command-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 7px;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #mensaje {
+            margin-top: 15px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .estado-conexion {
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 480px) {
+            .command-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <header>
+            <h1>Internet de las Cosas</h1>
+            <p>Panel de monitoreo IoT</p>
+        </header>
+
+        <section class="card">
+            <h2>Datos de los sensores</h2>
+
+            <div class="sensor-grid">
+                <div class="sensor-item">
+                    <span class="sensor-label">Distancia</span>
+                    <strong class="sensor-value" id="distancia">--</strong>
+                </div>
+
+                <div class="sensor-item">
+                    <span class="sensor-label">Movimiento</span>
+                    <strong class="sensor-value" id="movimiento">--</strong>
+                </div>
+
+                <div class="sensor-item">
+                    <span class="sensor-label">Puerta</span>
+                    <strong class="sensor-value" id="puerta">--</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Reporte de Gemini</h2>
+            <div class="report-box" id="reporte">
+                Esperando datos del ESP32...
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Comandos</h2>
+
+            <form id="formulario" class="command-form">
+                <input
+                    type="text"
+                    id="comando"
+                    placeholder="Ejemplo: /estado"
+                    autocomplete="off"
+                    required
+                >
+
+                <button type="submit" id="boton">
+                    Ejecutar
+                </button>
+            </form>
+
+            <div id="mensaje" role="status" aria-live="polite"></div>
+        </section>
+
+        <p class="estado-conexion" id="conexion">
+            Conectando con el servidor...
+        </p>
+    </div>
+
+    <script>
+        // ACTUALIZAR LOS SENSORES Y EL REPORTE
+        async function actualizar() {
+            try {
+                const respuesta = await fetch("/estado");
+
+                if (!respuesta.ok) {
+                    throw new Error("Error del servidor");
+                }
+
+                const resultado = await respuesta.json();
+
+                // Flask devuelve los datos dentro de resultado.datos
+                const datos = resultado.datos;
+
+                document.getElementById("distancia").textContent =
+                    datos.distancia;
+
+                document.getElementById("movimiento").textContent =
+                    datos.movimiento;
+
+                document.getElementById("puerta").textContent =
+                    datos.puerta;
+
+                document.getElementById("reporte").textContent =
+                    resultado.reporte;
+
+                document.getElementById("conexion").textContent =
+                    "Servidor conectado. Actualización automática activa.";
+
+            } catch (error) {
+                document.getElementById("conexion").textContent =
+                    "No se pudo conectar con el servidor.";
+            }
+        }
+
+        // ENVIAR COMANDOS DESDE EL PANEL
+        document.getElementById("formulario")
+            .addEventListener("submit", async function(event) {
+
+                event.preventDefault();
+
+                const campo = document.getElementById("comando");
+                const boton = document.getElementById("boton");
+                const mensaje = document.getElementById("mensaje");
+
+                const comando = campo.value.trim();
+
+                if (!comando) {
+                    return;
+                }
+
+                boton.disabled = true;
+                mensaje.textContent = "Procesando comando...";
+
+                try {
+                    const respuesta = await fetch("/comando", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            comando: comando
+                        })
+                    });
+
+                    const resultado = await respuesta.json();
+
+                    if (!respuesta.ok) {
+                        throw new Error(
+                            resultado.respuesta || "Error al ejecutar comando"
+                        );
+                    }
+
+                    mensaje.textContent =resultado.respuesta + "\n\nTelegram: " + resultado.telegram;
+                    campo.value = "";
+
+                    // Actualizar el panel después del comando
+                    await actualizar();
+
+                } catch (error) {
+                    mensaje.textContent =
+                        "Error: " + error.message;
+
+                } finally {
+                    boton.disabled = false;
+                    campo.focus();
+                }
+            });
+
+        // CONSULTAR EL SERVIDOR CADA 3 SEGUNDOS
+        actualizar();
+        setInterval(actualizar, 3000);
+    </script>
+</body>
+</html>
