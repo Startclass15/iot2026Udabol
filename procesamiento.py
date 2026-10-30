@@ -20,13 +20,14 @@ cliente = genai.Client(api_key=apiGoogle) if apiGoogle else None
 modelo = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # PASO 4. ALMACENAR LOS DATOS
-ultimoDato = {
-    "distancia": "--",
-    "movimiento": "--",
-    "puerta": "--"
+ultimoDato={
+    "distancia":"--",
+    "movimiento":"--",
+    "puerta":"--"
 }
 
-ultimoReporte = "Esperando datos del ESP32"
+ultimoReporte="Esperando el reporte de analisis"
+
 
 
 # PASO 5. ANALIZAR LOS DATOS CON GEMINI
